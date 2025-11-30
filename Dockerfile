@@ -1,18 +1,27 @@
-FROM python:3.9.2-slim-buster
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ="Asia/Kolkata"
+# Base image
+FROM python:3.10-slim-bullseye
 
-# Install dependencies
-RUN apt-get -qq update && \
-    apt-get -qq install -y git ffmpeg mediainfo build-essential mkvtoolnix fontconfig && \
-    rm -rf /var/lib/apt/lists/*
+# Set working directory
+WORKDIR /usr/src/app
 
-COPY . .
+# Install system packages
+RUN apt-get update && apt-get install -y \
+    ffmpeg git wget pv jq python3-dev \
+    mediainfo gcc libsm6 libxext6 \
+    libfontconfig1 libxrender1 libgl1-mesa-glx \
+ && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN python3 -m pip install --upgrade pip && \
-    pip3 install --no-cache-dir -r requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install "lxml[html_clean]"
 
-# Run the bot
+# Optional: If using static ffmpeg binaries
+# COPY --from=mwader/static-ffmpeg:6.1 /ffmpeg /bin/ffmpeg
+# COPY --from=mwader/static-ffmpeg:6.1 /ffprobe /bin/ffprobe
 
+# Copy project files
+COPY . .
+
+# Set entry point
 CMD ["bash", "run.sh"]
